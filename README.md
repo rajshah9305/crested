@@ -41,7 +41,7 @@ npm install
 ```bash
 npm run dev
 ```
-- The app will be available at [http://localhost:5000](http://localhost:5000)
+- The app will be available at [http://localhost:5001](http://localhost:5001)
 
 ### 5. Build for Production
 ```bash
@@ -50,9 +50,13 @@ npm run start
 ```
 
 ## Usage
-- Open your browser and navigate to [http://localhost:5000](http://localhost:5000)
+- Open your browser and navigate to [http://localhost:5001](http://localhost:5001)
 - Configure your API key via the UI to access AI features.
 - Explore the studios, create projects, and view analytics.
+
+## Troubleshooting
+- If you see an error like `EADDRINUSE: address already in use`, another process is using the port. Either stop that process or change the port in `server/index.ts`.
+- If you see a `TypeError [ERR_INVALID_ARG_TYPE]` related to `path.resolve`, ensure all necessary files (like `client/index.html`) exist and that you are running the server from the project root.
 
 ## Folder Structure
 - `client/` – Frontend React app
