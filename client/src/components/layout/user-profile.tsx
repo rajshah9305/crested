@@ -1,8 +1,10 @@
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { User, Settings, LogOut, Crown, BarChart3, FileText, Zap } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import React, { useState } from 'react';
+import { User, Settings, LogOut, CreditCard, Activity, Shield, Bell } from 'lucide-react';
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from '@/components/ui/avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,170 +13,358 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
-interface UserProfileProps {
-  user?: {
-    name: string;
-    email: string;
-    avatar?: string;
-    plan: 'free' | 'pro' | 'enterprise';
-    tokensUsed: number;
-    tokensLimit: number;
-  };
+// Type definitions
+interface BaseUser {
+  id: number;
+  name: string;
+  email: string;
+  avatar?: string;
+  plan: 'free' | 'pro' | 'enterprise';
+  tokensUsed: number;
+  tokensLimit: number;
+  createdAt?: Date;
+  lastActive?: Date;
 }
 
-export function UserProfile({ user }: UserProfileProps) {
-  const [isOpen, setIsOpen] = useState(false);
+interface UserProfileProps {
+  currentUser: BaseUser;
+  onSignOut?: () => void;
+  onSettingsClick?: () => void;
+  onUpgradeClick?: () => void;
+  className?: string;
+}
 
-  const defaultUser = {
-    name: 'Alex Creator',
-    email: 'alex@example.com',
-    plan: 'pro' as const,
-    tokensUsed: 45200,
-    tokensLimit: 100000,
+export function UserProfile({ 
+  currentUser, 
+  onSignOut, 
+  onSettingsClick, 
+  onUpgradeClick,
+  className = ""
+}: UserProfileProps) {
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Safe avatar access - handles missing avatar property
+  const avatarSrc = currentUser?.avatar || '';
+  const avatarFallback = currentUser?.name
+    ? currentUser.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+    : 'U';
+
+  // Calculate usage percentage
+  const usagePercentage = currentUser?.tokensLimit 
+    ? Math.min((currentUser.tokensUsed / currentUser.tokensLimit) * 100, 100)
+    : 0;
+
+  // Get plan color and label
+  const getPlanConfig = (plan: string) => {
+    switch (plan) {
+      case 'enterprise':
+        return { color: 'bg-purple-100 text-purple-800', label: 'Enterprise' };
+      case 'pro':
+        return { color: 'bg-blue-100 text-blue-800', label: 'Pro' };
+      default:
+        return { color: 'bg-gray-100 text-gray-800', label: 'Free' };
+    }
   };
 
-  const currentUser = user || defaultUser;
-  const usagePercentage = (currentUser.tokensUsed / currentUser.tokensLimit) * 100;
+  const planConfig = getPlanConfig(currentUser?.plan || 'free');
 
-  const planConfig = {
-    free: { color: 'bg-gray-500', label: 'Free', icon: User },
-    pro: { color: 'bg-orange-500', label: 'Pro', icon: Crown },
-    enterprise: { color: 'bg-purple-500', label: 'Enterprise', icon: Zap },
+  const handleSignOut = async () => {
+    setIsLoading(true);
+    try {
+      await onSignOut?.();
+    } catch (error) {
+      console.error('Sign out failed:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const plan = planConfig[currentUser.plan];
+  const formatNumber = (num: number) => {
+    return new Intl.NumberFormat().format(num);
+  };
+
+  const formatDate = (date?: Date) => {
+    if (!date) return 'Never';
+    return new Intl.DateTimeFormat('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    }).format(new Date(date));
+  };
 
   return (
-    <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          className="relative h-12 w-12 rounded-full border-2 border-transparent hover:border-orange-200 transition-all duration-300"
-        >
-          <Avatar className="h-10 w-10">
-            <AvatarImage src={currentUser.avatar || undefined} alt={currentUser.name} />
-            <AvatarFallback className="bg-gradient-to-br from-orange-500 to-red-500 text-white font-bold">
-              {currentUser.name.split(' ').map(n => n[0]).join('')}
-            </AvatarFallback>
-          </Avatar>
-          <motion.div
-            className="absolute -top-1 -right-1 w-4 h-4 rounded-full border-2 border-white shadow-lg"
-            style={{ backgroundColor: plan.color }}
-            animate={{ scale: [1, 1.1, 1] }}
-            transition={{ duration: 2, repeat: Infinity }}
-          />
-        </Button>
-      </DropdownMenuTrigger>
-      
-      <AnimatePresence>
-        {isOpen && (
-          <DropdownMenuContent
-            className="w-80 p-0 border-0 shadow-2xl"
-            align="end"
-            forceMount
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button 
+            variant="ghost" 
+            className={`h-10 w-10 rounded-full hover:ring-2 hover:ring-offset-2 hover:ring-blue-500 transition-all ${className}`}
           >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: -10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: -10 }}
-              transition={{ duration: 0.2 }}
-              className="bg-gradient-to-br from-white via-orange-50/30 to-white rounded-xl border border-gray-200 overflow-hidden"
+            <Avatar className="h-10 w-10">
+              <AvatarImage 
+                src={avatarSrc} 
+                alt={currentUser?.name || 'User avatar'}
+                className="object-cover"
+              />
+              <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold">
+                {avatarFallback}
+              </AvatarFallback>
+            </Avatar>
+          </Button>
+        </DropdownMenuTrigger>
+
+        <DropdownMenuContent className="w-80 p-0" align="end" forceMount>
+          {/* User Info Header */}
+          <div className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 border-b">
+            <div className="flex items-center space-x-3">
+              <Avatar className="h-12 w-12">
+                <AvatarImage 
+                  src={avatarSrc} 
+                  alt={currentUser?.name || 'User avatar'}
+                  className="object-cover"
+                />
+                <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold">
+                  {avatarFallback}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-gray-900 truncate">
+                  {currentUser?.name || 'Unknown User'}
+                </p>
+                <p className="text-sm text-gray-600 truncate">
+                  {currentUser?.email || 'No email'}
+                </p>
+                <div className="flex items-center space-x-2 mt-1">
+                  <Badge variant="secondary" className={planConfig.color}>
+                    {planConfig.label}
+                  </Badge>
+                  {currentUser?.plan === 'free' && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-5 text-xs"
+                      onClick={onUpgradeClick}
+                    >
+                      Upgrade
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Token Usage */}
+            <div className="mt-3">
+              <div className="flex justify-between text-xs text-gray-600 mb-1">
+                <span>Tokens Used</span>
+                <span>
+                  {formatNumber(currentUser?.tokensUsed || 0)} / {formatNumber(currentUser?.tokensLimit || 0)}
+                </span>
+              </div>
+              <Progress 
+                value={usagePercentage} 
+                className={`h-2 ${
+                  usagePercentage > 90 
+                    ? 'bg-red-500' 
+                    : usagePercentage > 70 
+                    ? 'bg-yellow-500' 
+                    : 'bg-green-500'
+                }`}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                {usagePercentage.toFixed(1)}% used this month
+              </p>
+            </div>
+          </div>
+
+          {/* Menu Items */}
+          <div className="p-2">
+            <DropdownMenuItem
+              className="cursor-pointer p-3 rounded-md"
+              onClick={() => setShowProfileModal(true)}
             >
-              {/* Header */}
-              <div className="p-6 bg-gradient-to-r from-orange-500 to-red-500 text-white">
+              <User className="mr-3 h-4 w-4" />
+              <span>View Profile</span>
+            </DropdownMenuItem>
+
+            <DropdownMenuItem
+              className="cursor-pointer p-3 rounded-md"
+              onClick={onSettingsClick}
+            >
+              <Settings className="mr-3 h-4 w-4" />
+              <span>Settings</span>
+            </DropdownMenuItem>
+
+            <DropdownMenuItem
+              className="cursor-pointer p-3 rounded-md"
+              onClick={onUpgradeClick}
+            >
+              <CreditCard className="mr-3 h-4 w-4" />
+              <span>Billing</span>
+            </DropdownMenuItem>
+
+            <DropdownMenuItem className="cursor-pointer p-3 rounded-md">
+              <Activity className="mr-3 h-4 w-4" />
+              <span>Usage Analytics</span>
+            </DropdownMenuItem>
+
+            <DropdownMenuItem className="cursor-pointer p-3 rounded-md">
+              <Bell className="mr-3 h-4 w-4" />
+              <span>Notifications</span>
+            </DropdownMenuItem>
+
+            <DropdownMenuSeparator className="my-2" />
+
+            <DropdownMenuItem
+              className="cursor-pointer p-3 rounded-md text-red-600 focus:text-red-600 focus:bg-red-50"
+              onClick={handleSignOut}
+              disabled={isLoading}
+            >
+              <LogOut className="mr-3 h-4 w-4" />
+              <span>{isLoading ? 'Signing out...' : 'Sign Out'}</span>
+            </DropdownMenuItem>
+          </div>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {/* Profile Details Modal */}
+      <Dialog open={showProfileModal} onOpenChange={setShowProfileModal}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Profile Details</DialogTitle>
+            <DialogDescription>
+              Manage your account information and preferences
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
+            {/* Profile Info */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Account Information</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <div className="flex items-center space-x-4">
-                  <Avatar className="h-16 w-16 border-3 border-white/30">
-                    <AvatarImage src={currentUser.avatar || undefined} alt={currentUser.name} />
-                    <AvatarFallback className="bg-white/20 text-white font-bold text-xl">
-                      {currentUser.name.split(' ').map(n => n[0]).join('')}
+                  <Avatar className="h-16 w-16">
+                    <AvatarImage 
+                      src={avatarSrc} 
+                      alt={currentUser?.name || 'User avatar'}
+                      className="object-cover"
+                    />
+                    <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold text-lg">
+                      {avatarFallback}
                     </AvatarFallback>
                   </Avatar>
-                  <div className="flex-1">
-                    <h3 className="font-bold text-lg">{currentUser.name}</h3>
-                    <p className="text-white/80 text-sm">{currentUser.email}</p>
-                    <Badge
-                      className={`mt-2 ${plan.color} text-white border-0 hover:${plan.color}`}
-                    >
-                      <plan.icon className="w-3 h-3 mr-1" />
-                      {plan.label} Plan
+                  <div>
+                    <h3 className="font-semibold text-lg">{currentUser?.name}</h3>
+                    <p className="text-gray-600">{currentUser?.email}</p>
+                    <Badge className={`mt-1 ${planConfig.color}`}>
+                      {planConfig.label} Plan
                     </Badge>
                   </div>
                 </div>
-              </div>
 
-              {/* Usage Stats */}
-              <div className="p-6 border-b border-gray-100">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-700">Token Usage</span>
-                    <span className="text-sm text-gray-500">
-                      {currentUser.tokensUsed.toLocaleString()} / {currentUser.tokensLimit.toLocaleString()}
-                    </span>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Member since:</span>
+                    <span>{formatDate(currentUser?.createdAt)}</span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <motion.div
-                      className="bg-gradient-to-r from-orange-500 to-red-500 h-2 rounded-full"
-                      initial={{ width: 0 }}
-                      animate={{ width: `${usagePercentage}%` }}
-                      transition={{ duration: 1, delay: 0.5 }}
-                    />
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Last active:</span>
+                    <span>{formatDate(currentUser?.lastActive)}</span>
                   </div>
-                  <div className="grid grid-cols-3 gap-4 pt-2">
-                    <div className="text-center">
-                      <div className="font-bold text-lg text-orange-600">24</div>
-                      <div className="text-xs text-gray-500">Projects</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="font-bold text-lg text-orange-600">156</div>
-                      <div className="text-xs text-gray-500">Sessions</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="font-bold text-lg text-orange-600">8.2h</div>
-                      <div className="text-xs text-gray-500">Saved</div>
-                    </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">User ID:</span>
+                    <span className="font-mono text-xs">#{currentUser?.id}</span>
                   </div>
                 </div>
-              </div>
+              </CardContent>
+            </Card>
 
-              {/* Menu Items */}
-              <div className="py-2">
-                <DropdownMenuLabel className="px-6 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Account
-                </DropdownMenuLabel>
-                
-                <DropdownMenuItem className="px-6 py-3 cursor-pointer hover:bg-orange-50 transition-colors">
-                  <User className="mr-3 h-4 w-4 text-gray-500" />
-                  <span className="font-medium">Profile Settings</span>
-                </DropdownMenuItem>
-                
-                <DropdownMenuItem className="px-6 py-3 cursor-pointer hover:bg-orange-50 transition-colors">
-                  <BarChart3 className="mr-3 h-4 w-4 text-gray-500" />
-                  <span className="font-medium">Usage Analytics</span>
-                </DropdownMenuItem>
-                
-                <DropdownMenuItem className="px-6 py-3 cursor-pointer hover:bg-orange-50 transition-colors">
-                  <FileText className="mr-3 h-4 w-4 text-gray-500" />
-                  <span className="font-medium">Billing & Plans</span>
-                </DropdownMenuItem>
-                
-                <DropdownMenuItem className="px-6 py-3 cursor-pointer hover:bg-orange-50 transition-colors">
-                  <Settings className="mr-3 h-4 w-4 text-gray-500" />
-                  <span className="font-medium">Preferences</span>
-                </DropdownMenuItem>
-                
-                <DropdownMenuSeparator className="my-2" />
-                
-                <DropdownMenuItem className="px-6 py-3 cursor-pointer hover:bg-red-50 transition-colors text-red-600">
-                  <LogOut className="mr-3 h-4 w-4" />
-                  <span className="font-medium">Sign Out</span>
-                </DropdownMenuItem>
-              </div>
-            </motion.div>
-          </DropdownMenuContent>
-        )}
-      </AnimatePresence>
-    </DropdownMenu>
+            {/* Usage Stats */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Usage Statistics</CardTitle>
+                <CardDescription>
+                  Current month usage and limits
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  <div>
+                    <div className="flex justify-between text-sm mb-2">
+                      <span>API Tokens Used</span>
+                      <span className="font-semibold">
+                        {formatNumber(currentUser?.tokensUsed || 0)}
+                      </span>
+                    </div>
+                    <Progress value={usagePercentage} className="h-2" />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 pt-2">
+                    <div className="text-center p-3 bg-gray-50 rounded-lg">
+                      <p className="text-2xl font-bold text-blue-600">
+                        {formatNumber(currentUser?.tokensUsed || 0)}
+                      </p>
+                      <p className="text-xs text-gray-600">Tokens Used</p>
+                    </div>
+                    <div className="text-center p-3 bg-gray-50 rounded-lg">
+                      <p className="text-2xl font-bold text-green-600">
+                        {formatNumber(currentUser?.tokensLimit || 0)}
+                      </p>
+                      <p className="text-xs text-gray-600">Monthly Limit</p>
+                    </div>
+                  </div>
+
+                  {currentUser?.plan === 'free' && usagePercentage > 80 && (
+                    <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                      <div className="flex items-center">
+                        <Shield className="h-4 w-4 text-yellow-600 mr-2" />
+                        <p className="text-sm text-yellow-800">
+                          You're approaching your monthly limit. Consider upgrading for unlimited access.
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        className="mt-2 bg-yellow-600 hover:bg-yellow-700"
+                        onClick={onUpgradeClick}
+                      >
+                        Upgrade Now
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="flex justify-end space-x-2 pt-4 border-t">
+            <Button
+              variant="outline"
+              onClick={() => setShowProfileModal(false)}
+            >
+              Close
+            </Button>
+            <Button onClick={onSettingsClick}>
+              Edit Profile
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
+
+export default UserProfile;
