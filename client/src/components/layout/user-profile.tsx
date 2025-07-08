@@ -54,7 +54,7 @@ export function UserProfile({ user }: UserProfileProps) {
           className="relative h-12 w-12 rounded-full border-2 border-transparent hover:border-orange-200 transition-all duration-300"
         >
           <Avatar className="h-10 w-10">
-            <AvatarImage src={currentUser.avatar} alt={currentUser.name} />
+            <AvatarImage src={currentUser.avatar || undefined} alt={currentUser.name} />
             <AvatarFallback className="bg-gradient-to-br from-orange-500 to-red-500 text-white font-bold">
               {currentUser.name.split(' ').map(n => n[0]).join('')}
             </AvatarFallback>
@@ -86,7 +86,7 @@ export function UserProfile({ user }: UserProfileProps) {
               <div className="p-6 bg-gradient-to-r from-orange-500 to-red-500 text-white">
                 <div className="flex items-center space-x-4">
                   <Avatar className="h-16 w-16 border-3 border-white/30">
-                    <AvatarImage src={currentUser.avatar} alt={currentUser.name} />
+                    <AvatarImage src={currentUser.avatar || undefined} alt={currentUser.name} />
                     <AvatarFallback className="bg-white/20 text-white font-bold text-xl">
                       {currentUser.name.split(' ').map(n => n[0]).join('')}
                     </AvatarFallback>
