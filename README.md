@@ -14,10 +14,10 @@ Cerebras Studio is a modern, full-stack AI creative platform that empowers users
 
 ## Tech Stack
 - **Frontend**: React (TypeScript, Wouter, Framer Motion, Tailwind CSS)
-- **Backend**: Node.js, Express, TypeScript
+- **Backend**: Vercel Serverless Functions (Node.js/TypeScript)
 - **Database**: Drizzle ORM (PostgreSQL or in-memory for dev)
 
-## Getting Started
+## Getting Started (Local)
 
 ### 1. Clone the Repository
 ```bash
@@ -49,18 +49,32 @@ npm run build
 npm run start
 ```
 
+## Deploying to Vercel
+
+1. **Push your code to GitHub.**
+2. **Go to [vercel.com](https://vercel.com) and import your GitHub repo.**
+3. **Set the project root to `/client` for the frontend.**
+4. **Vercel will automatically detect the `/api` directory for serverless functions.**
+5. **Set up environment variables (e.g., `DATABASE_URL`) in the Vercel dashboard if needed.**
+6. **Add a `vercel.json` file for custom rewrites (already included).**
+7. **Deploy!**
+
+- All frontend routes are handled by the React app.
+- All backend API routes are handled by Vercel serverless functions in `/api`.
+
 ## Usage
-- Open your browser and navigate to [http://localhost:5001](http://localhost:5001)
+- Open your browser and navigate to your Vercel deployment URL.
 - Configure your API key via the UI to access AI features.
 - Explore the studios, create projects, and view analytics.
 
 ## Troubleshooting
-- If you see an error like `EADDRINUSE: address already in use`, another process is using the port. Either stop that process or change the port in `server/index.ts`.
+- If you see an error like `EADDRINUSE: address already in use`, another process is using the port. Either stop that process or change the port in `server/index.ts` (for local dev only).
 - If you see a `TypeError [ERR_INVALID_ARG_TYPE]` related to `path.resolve`, ensure all necessary files (like `client/index.html`) exist and that you are running the server from the project root.
 
 ## Folder Structure
 - `client/` – Frontend React app
-- `server/` – Backend API and storage
+- `api/` – Vercel serverless backend endpoints
+- `server/` – Legacy backend logic and storage (shared logic is imported by serverless functions)
 - `shared/` – Shared types and schema
 
 ## License
